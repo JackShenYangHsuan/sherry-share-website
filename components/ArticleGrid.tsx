@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import TabFilter from './TabFilter';
 import ArticleCard from './ArticleCard';
+import ScrollReveal from './ScrollReveal';
 import type { Article } from '@/lib/articles';
 
 export default function ArticleGrid() {
@@ -25,10 +26,12 @@ export default function ArticleGrid() {
   return (
     <section className="py-16 px-4">
       <div className="max-w-7xl mx-auto">
-        <TabFilter activeTab={activeTab} onTabChange={setActiveTab} />
+        <ScrollReveal>
+          <TabFilter activeTab={activeTab} onTabChange={setActiveTab} />
+        </ScrollReveal>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {articles.map((article) => (
-            <ArticleCard key={article.id} article={article} />
+          {articles.map((article, i) => (
+            <ArticleCard key={article.id} article={article} index={i} />
           ))}
         </div>
         {articles.length === 0 && (

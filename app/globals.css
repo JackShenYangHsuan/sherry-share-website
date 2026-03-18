@@ -83,6 +83,120 @@ body {
   color: #666;
 }
 
+/* Enhanced article reading experience */
+.article-content-enhanced {
+  font-family: 'Noto Serif TC', 'Georgia', serif;
+  font-size: 1.1rem;
+  line-height: 2;
+  color: #333;
+}
+
+.article-content-enhanced > p:first-of-type::first-letter {
+  float: left;
+  font-size: 3.5rem;
+  line-height: 1;
+  padding-right: 0.5rem;
+  padding-top: 0.15rem;
+  font-weight: 700;
+  color: #DCA54A;
+  font-family: 'Georgia', serif;
+}
+
+.article-content-enhanced h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+  font-family: 'Noto Serif TC', 'Georgia', serif;
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+
+.article-content-enhanced h2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 40px;
+  height: 2px;
+  background: #DCA54A;
+}
+
+.article-content-enhanced h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  color: #1a1a1a;
+  font-family: 'Noto Serif TC', 'Georgia', serif;
+}
+
+.article-content-enhanced p {
+  margin-bottom: 1.25rem;
+}
+
+.article-content-enhanced ul, .article-content-enhanced ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.article-content-enhanced ul {
+  list-style-type: disc;
+}
+
+.article-content-enhanced ol {
+  list-style-type: decimal;
+}
+
+.article-content-enhanced li {
+  margin-bottom: 0.5rem;
+  line-height: 1.8;
+}
+
+.article-content-enhanced hr {
+  margin: 2.5rem auto;
+  border: none;
+  width: 60px;
+  height: 1px;
+  background: #DCA54A;
+}
+
+.article-content-enhanced a {
+  color: #DCA54A;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: #DCA54A40;
+  transition: text-decoration-color 0.2s;
+}
+
+.article-content-enhanced a:hover {
+  text-decoration-color: #DCA54A;
+}
+
+.article-content-enhanced strong {
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.article-content-enhanced blockquote {
+  border-left: 3px solid #DCA54A;
+  padding: 1rem 1.5rem;
+  margin: 2rem 0;
+  font-style: italic;
+  color: #555;
+  background: #FAF7F2;
+  border-radius: 0 8px 8px 0;
+  font-size: 1.05rem;
+}
+
+.article-content-enhanced img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 2rem 0;
+}
+
 /* TipTap editor styles */
 .tiptap-editor .ProseMirror {
   min-height: 400px;
