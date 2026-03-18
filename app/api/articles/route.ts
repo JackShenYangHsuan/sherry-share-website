@@ -4,7 +4,8 @@ import pg from 'pg';
 function getPool() {
   const connStr = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
   if (!connStr) return null;
-  return new pg.Pool({ connectionString: connStr, ssl: { rejectUnauthorized: false }, max: 5 });
+  const cleanUrl = connStr.replace(/[?&]sslmode=[^&]*/g, '').replace(/[?&]supa=[^&]*/g, '');
+  return new pg.Pool({ connectionString: cleanUrl, ssl: { rejectUnauthorized: false }, max: 5 });
 }
 
 async function getLocalArticles() {

@@ -56,8 +56,13 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'No POSTGRES_URL env var found' }, { status: 500 });
     }
 
+    // Strip sslmode from URL and handle SSL manually
+    const cleanUrl = connStr.replace(/[?&]sslmode=[^&]*/g, '').replace(/[?&]supa=[^&]*/g, '');
     results.push(`Connecting to Postgres...`);
-    client = new pg.Client({ connectionString: connStr, ssl: { rejectUnauthorized: false } });
+    client = new pg.Client({
+      connectionString: cleanUrl,
+      ssl: { rejectUnauthorized: false },
+    });
     await client.connect();
     results.push('✅ Connected');
 
