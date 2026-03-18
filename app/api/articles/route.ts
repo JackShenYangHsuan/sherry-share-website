@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import pg from 'pg';
 
-const USE_VERCEL_PG = !!process.env.POSTGRES_URL;
-
-async function getSupabaseClient() {
-  const { supabase } = await import('@/lib/supabase');
-  return supabase;
-}
-
-async function getVercelSql() {
-  const { sql } = await import('@vercel/postgres');
-  return sql;
+function getPool() {
+  const connStr = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL;
+  if (!connStr) return null;
+  return new pg.Pool({ connectionString: connStr, ssl: { rejectUnauthorized: false }, max: 5 });
 }
 
 async function getLocalArticles() {
@@ -28,40 +23,26 @@ async function writeLocalArticles(articles: unknown[]) {
 }
 
 export async function GET() {
-  // Try @vercel/postgres first (works on Vercel with Supabase integration)
-  if (USE_VERCEL_PG) {
+  const pool = getPool();
+  if (pool) {
     try {
-      const sql = await getVercelSql();
-      const result = await sql`SELECT * FROM articles ORDER BY date DESC`;
+      const result = await pool.query('SELECT * FROM articles ORDER BY date DESC');
+      await pool.end();
       return NextResponse.json(result.rows);
     } catch (e) {
-      // Table might not exist yet, fall back to Supabase client
-      console.error('Vercel PG error:', e);
+      console.error('PG error, falling back to local:', e);
+      try { await pool.end(); } catch { /* ignore */ }
     }
   }
 
-  // Try Supabase JS client
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    try {
-      const supabase = await getSupabaseClient();
-      const { data, error } = await supabase
-        .from('articles')
-        .select('*')
-        .order('date', { ascending: false });
-      if (!error && data) return NextResponse.json(data);
-    } catch (e) {
-      console.error('Supabase client error:', e);
-    }
-  }
-
-  // Local JSON fallback
+  // Local JSON fallback (works during build + local dev)
   const articles = await getLocalArticles();
   return NextResponse.json(articles);
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const newArticle = {
+  const a = {
     id: body.id || Date.now().toString(),
     slug: body.slug,
     title: body.title,
@@ -75,76 +56,48 @@ export async function POST(req: NextRequest) {
     content: body.content || '',
   };
 
-  if (USE_VERCEL_PG) {
+  const pool = getPool();
+  if (pool) {
     try {
-      const sql = await getVercelSql();
-      await sql`
+      await pool.query(`
         INSERT INTO articles (id, slug, title, excerpt, categories, tags, image, date, author, status, content)
-        VALUES (${newArticle.id}, ${newArticle.slug}, ${newArticle.title}, ${newArticle.excerpt},
-                ${newArticle.categories as unknown as string}, ${newArticle.tags as unknown as string},
-                ${newArticle.image}, ${newArticle.date}, ${newArticle.author}, ${newArticle.status}, ${newArticle.content})
-      `;
-      return NextResponse.json(newArticle, { status: 201 });
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `, [a.id, a.slug, a.title, a.excerpt, a.categories, a.tags, a.image, a.date, a.author, a.status, a.content]);
+      await pool.end();
+      return NextResponse.json(a, { status: 201 });
     } catch (e) {
+      try { await pool.end(); } catch { /* ignore */ }
       return NextResponse.json({ error: String(e) }, { status: 500 });
     }
   }
 
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    const supabase = await getSupabaseClient();
-    const { data, error } = await supabase.from('articles').insert(newArticle).select().single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data, { status: 201 });
-  }
-
   const articles = await getLocalArticles();
-  articles.push(newArticle);
+  articles.push(a);
   await writeLocalArticles(articles);
-  return NextResponse.json(newArticle, { status: 201 });
+  return NextResponse.json(a, { status: 201 });
 }
 
 export async function PUT(req: NextRequest) {
   const body = await req.json();
 
-  if (USE_VERCEL_PG) {
+  const pool = getPool();
+  if (pool) {
     try {
-      const sql = await getVercelSql();
-      await sql`
-        UPDATE articles SET
-          title = ${body.title},
-          excerpt = ${body.excerpt || ''},
-          categories = ${body.categories as unknown as string || '{}'},
-          tags = ${body.tags as unknown as string || '{}'},
-          image = ${body.image || ''},
-          date = ${body.date},
-          author = ${body.author || 'Sherry'},
-          status = ${body.status || 'draft'},
-          content = ${body.content || ''},
-          updated_at = NOW()
-        WHERE slug = ${body.slug}
-      `;
+      await pool.query(`
+        UPDATE articles SET title=$1, excerpt=$2, categories=$3, tags=$4, image=$5, date=$6, author=$7, status=$8, content=$9, updated_at=NOW()
+        WHERE slug=$10
+      `, [body.title, body.excerpt||'', body.categories||[], body.tags||[], body.image||'', body.date, body.author||'Sherry', body.status||'draft', body.content||'', body.slug]);
+      await pool.end();
       return NextResponse.json(body);
     } catch (e) {
+      try { await pool.end(); } catch { /* ignore */ }
       return NextResponse.json({ error: String(e) }, { status: 500 });
     }
   }
 
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    const supabase = await getSupabaseClient();
-    const updateData = { ...body, updated_at: new Date().toISOString() };
-    const { data, error } = await supabase
-      .from('articles')
-      .update(updateData)
-      .eq('slug', body.slug)
-      .select()
-      .single();
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data);
-  }
-
   const articles = await getLocalArticles();
   const index = articles.findIndex((a: { slug: string }) => a.slug === body.slug);
-  if (index === -1) return NextResponse.json({ error: 'Article not found' }, { status: 404 });
+  if (index === -1) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   articles[index] = { ...articles[index], ...body };
   await writeLocalArticles(articles);
   return NextResponse.json(articles[index]);
@@ -153,21 +106,16 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const body = await req.json();
 
-  if (USE_VERCEL_PG) {
+  const pool = getPool();
+  if (pool) {
     try {
-      const sql = await getVercelSql();
-      await sql`DELETE FROM articles WHERE id = ${body.id}`;
+      await pool.query('DELETE FROM articles WHERE id = $1', [body.id]);
+      await pool.end();
       return NextResponse.json({ success: true });
     } catch (e) {
+      try { await pool.end(); } catch { /* ignore */ }
       return NextResponse.json({ error: String(e) }, { status: 500 });
     }
-  }
-
-  if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    const supabase = await getSupabaseClient();
-    const { error } = await supabase.from('articles').delete().eq('id', body.id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ success: true });
   }
 
   const articles = await getLocalArticles();
