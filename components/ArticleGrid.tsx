@@ -1,13 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TabFilter from './TabFilter';
 import ArticleCard from './ArticleCard';
-import { getAllArticles, getArticlesByCategory } from '@/lib/articles';
+import type { Article } from '@/lib/articles';
 
 export default function ArticleGrid() {
   const [activeTab, setActiveTab] = useState('all');
-  const articles = activeTab === 'all' ? getAllArticles() : getArticlesByCategory(activeTab);
+  const [allArticles, setAllArticles] = useState<Article[]>([]);
+
+  useEffect(() => {
+    fetch('/api/articles')
+      .then(res => res.json())
+      .then((data: Article[]) => {
+        setAllArticles(data.filter(a => a.status === 'published'));
+      })
+      .catch(() => {});
+  }, []);
+
+  const articles = activeTab === 'all'
+    ? allArticles
+    : allArticles.filter(a => a.categories?.includes(activeTab));
 
   return (
     <section className="py-16 px-4">

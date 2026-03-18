@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TiptapImage from '@tiptap/extension-image';
@@ -18,6 +18,7 @@ interface RichTextEditorProps {
 
 export default function RichTextEditor({ content, onChange }: RichTextEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isInternalUpdate = useRef(false);
 
   const editor = useEditor({
     extensions: [
@@ -31,9 +32,22 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
     content,
     immediatelyRender: false,
     onUpdate: ({ editor }) => {
+      isInternalUpdate.current = true;
       onChange(editor.getHTML());
     },
   });
+
+  // Sync external content changes into the editor (e.g. when article loads from API)
+  useEffect(() => {
+    if (editor && content && !isInternalUpdate.current) {
+      const currentContent = editor.getHTML();
+      // Only update if content actually changed externally (not from our own edits)
+      if (currentContent !== content && content !== '<p></p>') {
+        editor.commands.setContent(content, false);
+      }
+    }
+    isInternalUpdate.current = false;
+  }, [content, editor]);
 
   if (!editor) return null;
 

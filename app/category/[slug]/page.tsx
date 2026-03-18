@@ -1,25 +1,37 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import ArticleCard from '@/components/ArticleCard';
-import { getArticlesByCategory, getCategoryLabel } from '@/lib/articles';
+import type { Article } from '@/lib/articles';
 
-const VALID_CATEGORIES = ['interview', 'books', 'applied-psychology', 'organizational-psychology', 'sherryshare', 'food', 'wellness'];
+const CATEGORY_LABELS: Record<string, string> = {
+  interview: '人物專訪',
+  books: '讀好書',
+  'applied-psychology': '應用心理學',
+  'organizational-psychology': '組織心理學',
+  sherryshare: '選好物',
+  food: '飲食',
+  wellness: '健康生活',
+};
 
-export async function generateStaticParams() {
-  return VALID_CATEGORIES.map((slug) => ({ slug }));
-}
+export default function CategoryPage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const [articles, setArticles] = useState<Article[]>([]);
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const label = getCategoryLabel(slug);
-  return { title: label };
-}
+  useEffect(() => {
+    fetch('/api/articles')
+      .then(res => res.json())
+      .then((data: Article[]) => {
+        setArticles(
+          data.filter(a => a.status === 'published' && a.categories?.includes(slug))
+        );
+      })
+      .catch(() => {});
+  }, [slug]);
 
-export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  if (!VALID_CATEGORIES.includes(slug)) notFound();
-
-  const articles = getArticlesByCategory(slug);
-  const label = getCategoryLabel(slug);
+  const label = CATEGORY_LABELS[slug] || slug;
 
   return (
     <div className="py-12 px-4">

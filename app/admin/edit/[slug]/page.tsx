@@ -36,7 +36,7 @@ export default function EditArticlePage() {
     tags: '',
     image: '',
     content: '',
-    status: 'draft' as 'published' | 'draft',
+    status: 'published' as 'published' | 'draft',
     date: new Date().toISOString().split('T')[0],
   });
   const [saving, setSaving] = useState(false);

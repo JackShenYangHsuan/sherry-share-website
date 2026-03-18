@@ -1,15 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TabFilter from '@/components/TabFilter';
 import ArticleCard from '@/components/ArticleCard';
 import Link from 'next/link';
-import { getAllArticles, getArticlesByCategory } from '@/lib/articles';
+import type { Article } from '@/lib/articles';
 import { TAGS } from '@/lib/constants';
 
 export default function BlogPage() {
   const [activeTab, setActiveTab] = useState('all');
-  const articles = activeTab === 'all' ? getAllArticles() : getArticlesByCategory(activeTab);
+  const [allArticles, setAllArticles] = useState<Article[]>([]);
+
+  useEffect(() => {
+    fetch('/api/articles')
+      .then(res => res.json())
+      .then((data: Article[]) => {
+        setAllArticles(data.filter(a => a.status === 'published'));
+      })
+      .catch(() => {});
+  }, []);
+
+  const articles = activeTab === 'all'
+    ? allArticles
+    : allArticles.filter(a => a.categories?.includes(activeTab));
 
   return (
     <div className="py-12 px-4">

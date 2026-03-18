@@ -1,15 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { CATEGORIES } from '@/lib/constants';
-import { getRecentArticles } from '@/lib/articles';
+import type { Article } from '@/lib/articles';
 
 export default function Sidebar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [email, setEmail] = useState('');
   const [subscribed, setSubscribed] = useState(false);
-  const recentArticles = getRecentArticles(5);
+  const [recentArticles, setRecentArticles] = useState<Article[]>([]);
+
+  useEffect(() => {
+    fetch('/api/articles')
+      .then(res => res.json())
+      .then((data: Article[]) => {
+        setRecentArticles(data.filter(a => a.status === 'published').slice(0, 5));
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
