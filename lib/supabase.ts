@@ -2,31 +2,14 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Only create the client if both env vars are present
+// Public client (uses anon key, respects RLS)
 export const supabase: SupabaseClient = (supabaseUrl && supabaseAnonKey)
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null as unknown as SupabaseClient;
 
-// SQL to create the articles table (run this in Supabase SQL editor):
-/*
-CREATE TABLE articles (
-  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  slug TEXT UNIQUE NOT NULL,
-  title TEXT NOT NULL,
-  excerpt TEXT DEFAULT '',
-  categories TEXT[] DEFAULT '{}',
-  tags TEXT[] DEFAULT '{}',
-  image TEXT DEFAULT '',
-  date DATE DEFAULT CURRENT_DATE,
-  author TEXT DEFAULT 'Sherry',
-  status TEXT DEFAULT 'draft' CHECK (status IN ('published', 'draft')),
-  content TEXT DEFAULT '',
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Enable RLS but allow all operations (simple setup)
-ALTER TABLE articles ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow all" ON articles FOR ALL USING (true) WITH CHECK (true);
-*/
+// Admin client (uses service role key, bypasses RLS - server-side only!)
+export const supabaseAdmin: SupabaseClient = (supabaseUrl && supabaseServiceRoleKey)
+  ? createClient(supabaseUrl, supabaseServiceRoleKey)
+  : null as unknown as SupabaseClient;
