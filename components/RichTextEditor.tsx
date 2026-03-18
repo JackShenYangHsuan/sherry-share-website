@@ -43,7 +43,7 @@ export default function RichTextEditor({ content, onChange }: RichTextEditorProp
       const currentContent = editor.getHTML();
       // Only update if content actually changed externally (not from our own edits)
       if (currentContent !== content && content !== '<p></p>') {
-        editor.commands.setContent(content, false);
+        editor.commands.setContent(content, { emitUpdate: false });
       }
     }
     isInternalUpdate.current = false;
