@@ -96,7 +96,7 @@ export default function ArticlePage() {
         </motion.div>
       )}
 
-      <div className="px-4 pb-16">
+      <div className="px-4 sm:px-6 lg:px-8 pb-16">
         <div className="max-w-7xl mx-auto">
           {/* Article header — overlapping the hero image */}
           <motion.div
@@ -105,7 +105,7 @@ export default function ArticlePage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.1, 0.25, 1] as const }}
           >
-            <div className="bg-white rounded-t-2xl pt-8 px-4 md:px-0 max-w-4xl mx-auto lg:mx-0">
+            <div className="bg-white rounded-t-2xl pt-8 px-6 md:px-8 max-w-4xl lg:max-w-none">
               {/* Category & Date */}
               <div className="flex items-center gap-3 mb-4">
                 {article.categories && article.categories.map((cat) => (
@@ -139,7 +139,7 @@ export default function ArticlePage() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-12 px-2 md:px-4">
             {/* Main Content */}
             <motion.article
               initial={{ opacity: 0, y: 20 }}
