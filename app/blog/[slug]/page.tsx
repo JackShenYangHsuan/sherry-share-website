@@ -1,46 +1,52 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { getAllArticles, getArticleBySlug, getCategoryLabel } from '@/lib/articles';
 import Sidebar from '@/components/Sidebar';
 import type { Article } from '@/lib/articles';
 
-// Revalidate every 60 seconds so new Supabase articles show up
-export const revalidate = 60;
+const CATEGORY_LABELS: Record<string, string> = {
+  interview: '人物專訪',
+  books: '讀好書',
+  'applied-psychology': '應用心理學',
+  'organizational-psychology': '組織心理學',
+  sherryshare: '選好物',
+};
 
-export async function generateStaticParams() {
-  const articles = getAllArticles();
-  return articles.map((article) => ({ slug: article.slug }));
-}
+export default function ArticlePage() {
+  const params = useParams();
+  const slug = params.slug as string;
+  const [article, setArticle] = useState<Article | null>(null);
+  const [loading, setLoading] = useState(true);
 
-async function getArticle(slug: string): Promise<Article | undefined> {
-  // Try local data first (for statically built articles)
-  const local = getArticleBySlug(slug);
-  if (local) return local;
+  useEffect(() => {
+    fetch('/api/articles')
+      .then(res => res.json())
+      .then((articles: Article[]) => {
+        const found = articles.find(a => a.slug === slug);
+        setArticle(found || null);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [slug]);
 
-  // Fallback: fetch from API (covers Supabase-created articles)
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000';
-    const res = await fetch(`${baseUrl}/api/articles`, { next: { revalidate: 60 } });
-    const articles: Article[] = await res.json();
-    return articles.find(a => a.slug === slug);
-  } catch {
-    return undefined;
+  if (loading) {
+    return (
+      <div className="py-20 text-center">
+        <div className="animate-pulse text-gray-400">載入中...</div>
+      </div>
+    );
   }
-}
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const article = await getArticle(slug);
-  if (!article) return { title: 'Article Not Found' };
-  return { title: article.title };
-}
-
-export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const article = await getArticle(slug);
-  if (!article) notFound();
+  if (!article) {
+    return (
+      <div className="py-20 text-center">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">找不到文章</h1>
+        <Link href="/blog" className="text-[#DCA54A] hover:underline">← 返回文章列表</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="py-8 px-4">
@@ -49,38 +55,47 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           {/* Main Content */}
           <article>
             {/* Category & Tags */}
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-              <span>📁</span>
-              {article.categories.map((cat, i) => (
-                <span key={cat}>
-                  <Link href={`/category/${cat}`} className="text-[#DCA54A] hover:underline">
-                    {getCategoryLabel(cat)}
-                  </Link>
-                  {i < article.categories.length - 1 && ', '}
-                </span>
-              ))}
-            </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-              <span>#</span>
-              {article.tags.map((tag, i) => (
-                <span key={tag}>
-                  <Link href={`/blog?tag=${tag}`} className="text-[#DCA54A] hover:underline">
-                    {tag}
-                  </Link>
-                  {i < article.tags.length - 1 && ', '}
-                </span>
-              ))}
-            </div>
+            {article.categories && article.categories.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                <span>📁</span>
+                {article.categories.map((cat, i) => (
+                  <span key={cat}>
+                    <Link href={`/category/${cat}`} className="text-[#DCA54A] hover:underline">
+                      {CATEGORY_LABELS[cat] || cat}
+                    </Link>
+                    {i < article.categories.length - 1 && ', '}
+                  </span>
+                ))}
+              </div>
+            )}
+            {article.tags && article.tags.length > 0 && (
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+                <span>#</span>
+                {article.tags.map((tag, i) => (
+                  <span key={tag}>
+                    <Link href={`/blog?tag=${tag}`} className="text-[#DCA54A] hover:underline">
+                      {tag}
+                    </Link>
+                    {i < article.tags.length - 1 && ', '}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* Title */}
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-snug mb-8">
               {article.title}
             </h1>
 
+            {/* Featured Image */}
+            {article.image && (
+              <img src={article.image} alt={article.title} className="w-full rounded-lg mb-8" />
+            )}
+
             {/* Content */}
             <div
               className="article-content prose prose-lg max-w-none"
-              dangerouslySetInnerHTML={{ __html: article.content }}
+              dangerouslySetInnerHTML={{ __html: article.content || '' }}
             />
           </article>
 
